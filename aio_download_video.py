@@ -1,9 +1,9 @@
-import aiohttp
-from bs4 import BeautifulSoup
-import asyncio
 import aiofiles
-from pathlib import Path
 import httpx
+import asyncio
+from bs4 import BeautifulSoup
+from pathlib import Path
+
 header1 = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
     'Cache-Control': 'no-cache'
@@ -27,48 +27,57 @@ header2 = {
     'Cache-Control': 'no-cache'
 }
 
-links = []
-
-
-async def download_video(url, pasta):
-    pasta = Path(pasta)
+async def fetch_page(url, headers, timeout=10):
     async with httpx.AsyncClient() as session:
         try:
-            response = await session.get(url, headers=header1, timeout=10)
+            response = await session.get(url, headers=headers, timeout=timeout)
             response.raise_for_status()
-            soup = BeautifulSoup( response.text, 'html.parser')
-            source = soup.find_all('source')
-            
-            for link in source:
-                try:
-                    link_src = link['src']
-                    if link_src not in links:
-                        links.append(link_src)
-                except KeyError:
-                    print(f'Aviso: A tag source não possui atributo src.')
-
-            print(f'Lista Carregada: {len(links)}')
-
-            for link in links:
-                nome = link.split('/')[-1]
-                print(f'Baixando {nome}')
-                
-                try:
-                    response = await session.get(link, headers=header2, timeout=60*3)
-
-                    async with aiofiles.open(pasta / nome, 'wb') as f:
-                            await f.write(response.content)
-                    
-                    print(f'Download de {nome} concluído')
-                    
-                except (aiohttp.ClientError, aiohttp.ClientResponseError) as e:
-                    print(f'Erro ao baixar {nome}: {e}')
-
-        except (aiohttp.ClientError, aiohttp.ClientResponseError) as e:
+            return response.text
+        except (httpx.HTTPError, httpx.TimeoutException) as e:
             print(f'Erro ao carregar a página: {e}')
+            return None
+
+async def extract_video_links(page_content):
+    links = set()
+    if page_content:
+        soup = BeautifulSoup(page_content, 'html.parser')
+        source_tags = soup.find_all('source')
+        for tag in source_tags:
+            try:
+                link_src = tag['src']
+                links.add(link_src)
+            except KeyError:
+                print(f'Aviso: A tag source não possui atributo src.')
+    return links
+
+async def download_single_video(client, link, pasta):
+    nome = link.split('/')[-1]
+    print(f'Baixando {nome}')
+    
+    try:
+        response = await client.get(link, headers=header2, timeout=60*3)
+        response.raise_for_status()
+
+        async with aiofiles.open(Path(pasta) / nome, 'wb') as f:
+            await f.write(response.content)
+
+        print(f'Download de {nome} concluído')
+    except (httpx.HTTPError, httpx.TimeoutException) as e:
+        print(f'Erro ao baixar {nome}: {e}')
+
+async def download_videos(url, pasta):
+    page_content = await fetch_page(url, headers=header1)
+    video_links = await extract_video_links(page_content)
+
+    if video_links:
+        print(f'Lista Carregada: {len(video_links)}')
+
+        async with httpx.AsyncClient() as client:
+            tasks = [download_single_video(client, link, pasta) for link in video_links]
+            await asyncio.gather(*tasks)
 
 async def main():
-    await download_video('https://www.erome.com/a/vgjdhL3k', 'teste')
+    await download_videos('https://www.erome.com/a/vgjdhL3k', 'teste')
 
 if __name__ == '__main__':
     asyncio.run(main())

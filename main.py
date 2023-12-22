@@ -30,7 +30,7 @@ header2 = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
         'Cache-Control': 'no-cache'  # Adicionando o cabeçalho para indicar que não deve ser usado em cache
     }
-nome = 'cibelly ferreira'
+nome = 'MC Chinesa'
 nome = quote(nome)
 pasta = Path(nome)
 if not pasta.is_dir():
@@ -51,8 +51,8 @@ async def search():
     if existe:
         a = soup.find_all('a', class_='album-link')
         for link in a:
-            await download_image(link.get('href'), pasta)
-            await download_video(link.get('href'), pasta)
+            await download_images(link.get('href'), pasta)
+            await download_videos(link.get('href'), pasta)
 
 
 
