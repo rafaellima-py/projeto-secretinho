@@ -1,8 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import quote
-from EromeDownloaderImage import downloader_image
-from EromeDownloaderVideo import downloader_video
+
 from pathlib import Path
 import asyncio
 import aiohttp
@@ -31,7 +30,7 @@ header2 = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
         'Cache-Control': 'no-cache'  # Adicionando o cabeçalho para indicar que não deve ser usado em cache
     }
-nome = 'Renatinha Mello'
+nome = 'cibelly ferreira'
 nome = quote(nome)
 pasta = Path(nome)
 if not pasta.is_dir():
